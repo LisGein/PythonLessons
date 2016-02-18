@@ -1,7 +1,8 @@
 import random
 import copy
-import collections
 from enum import Enum
+from collections import OrderedDict
+from operator import itemgetter
 
 
 class CellType(Enum):
@@ -35,13 +36,19 @@ class Point:
 
     def turn_right(self):
         if self.x == 0:
-            self.y = -1*self.x
-            self.x = 0
+            self.x = self.y
+            self.y = 0
         else:
-            self.y = self.x
+            self.y = -1*self.x
             self.x = 0
         return self
 
+
+def set_Gen(child, parent, state):
+    child.gen.append(parent.gen[state])
+    child.first_state = parent.first_state
+    child.current_state = child.first_state
+    return child
 
 class Grid:
     def __init__(self):
@@ -62,8 +69,11 @@ class Grid:
         d = {}
         for ant in self.ants:
             d[ant] = ant.survival
-        od = collections.OrderedDict(sorted(d.items(), key=lambda x: x[1]))
-        self.ants = [od[i][0] for i in range(od)]
+
+        parentAnts = sorted(d.items(), key=lambda x: x[1])
+        self.ants.clear()
+        for index in range(int(len(parentAnts))):
+            self.ants.append(parentAnts[index][0])
 
     def new_gen(self):
         new_ants = []
@@ -76,15 +86,16 @@ class Grid:
                     for state in range(7):
                         # mutation = random.randint(0, 10)
                         if state < separator:
-                            ant_boy.gen.append(father.gen[state])
-                            ant_girl.gen.append(mother.gen[state])
+                            ant_boy = set_Gen(ant_boy, father, state)
+                            ant_girl = set_Gen(ant_girl, mother, state)
                         else:
-                            ant_boy.gen.append(mother.gen[state])
-                            ant_girl.gen.append(father.gen[state])
+                            ant_boy = set_Gen(ant_boy, mother, state)
+                            ant_girl = set_Gen(ant_girl, father, state)
+
                     new_ants.append(ant_boy)
                     new_ants.append(ant_girl)
         self.ants = new_ants
-        print("new ants")
+        print("new gen")
 
     def move(self):
         for ant in self.ants:
@@ -134,7 +145,7 @@ class Ant:
 
 def main():
     grid = Grid()
-    for i in range(10):
+    for i in range(20):
         ant = Ant()
         ant.generate_gen()
         grid.ants.append(ant)
@@ -143,8 +154,9 @@ def main():
         for column in row:
             if column == 2:
                 grid.apple += 1
-    for i in range(2):
+    for i in range(20):
         grid.move()
+        grid.sort_ants()
         grid.new_gen()
 
 if __name__ == '__main__':
