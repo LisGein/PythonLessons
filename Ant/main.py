@@ -1,8 +1,6 @@
 import random
 import copy
 from enum import Enum
-from collections import OrderedDict
-from operator import itemgetter
 
 
 class CellType(Enum):
@@ -17,6 +15,13 @@ def check_max(x):
     elif x < 0:
         x = 10 - abs(x%10)
     return x
+
+
+def set_gen(child, parent, state):
+    child.gen.append(parent.gen[state])
+    child.first_state = parent.first_state
+    child.current_state = child.first_state
+    return child
 
 
 class Point:
@@ -44,12 +49,6 @@ class Point:
         return self
 
 
-def set_Gen(child, parent, state):
-    child.gen.append(parent.gen[state])
-    child.first_state = parent.first_state
-    child.current_state = child.first_state
-    return child
-
 class Grid:
     def __init__(self):
         self.world = [[0, 2, 2, 2, 2, 0, 0, 0, 0, 0],
@@ -70,10 +69,10 @@ class Grid:
         for ant in self.ants:
             d[ant] = ant.survival
 
-        parentAnts = sorted(d.items(), key=lambda x: x[1])
+        parents = sorted(d.items(), key=lambda x: x[1])
         self.ants.clear()
-        for index in range(int(len(parentAnts))):
-            self.ants.append(parentAnts[index][0])
+        for index in range(int(len(parents))):
+            self.ants.append(parents[index][0])
 
     def new_gen(self):
         new_ants = []
@@ -86,11 +85,11 @@ class Grid:
                     for state in range(7):
                         # mutation = random.randint(0, 10)
                         if state < separator:
-                            ant_boy = set_Gen(ant_boy, father, state)
-                            ant_girl = set_Gen(ant_girl, mother, state)
+                            ant_boy = set_gen(ant_boy, father, state)
+                            ant_girl = set_gen(ant_girl, mother, state)
                         else:
-                            ant_boy = set_Gen(ant_boy, mother, state)
-                            ant_girl = set_Gen(ant_girl, father, state)
+                            ant_boy = set_gen(ant_boy, mother, state)
+                            ant_girl = set_gen(ant_girl, father, state)
 
                     new_ants.append(ant_boy)
                     new_ants.append(ant_girl)
