@@ -3,6 +3,9 @@ import copy
 from enum import Enum
 
 
+states = 7
+
+
 class CellType(Enum):
     free = 0
     line = 1
@@ -17,11 +20,21 @@ def check_max(x):
     return x
 
 
-def set_gen(child, parent, state):
-    child.gen.append(parent.gen[state])
-    child.first_state = parent.first_state
-    child.current_state = child.first_state
-    return child
+def generete_mutation(parent):
+    stateMutation = random.randint(0, 2)
+    if stateMutation == 2 or stateMutation == 0:
+        parent.first_state = random.randint(0, states-1)
+        parent.current_state = parent.first_state
+
+    if stateMutation == 2 or stateMutation == 1:
+        true_state = random.randint(0, states-1)
+        false_state = random.randint(0, states-1)
+        false_turn = random.randint(0, 1)
+        state_ant = [(false_turn, false_state), (0, true_state)]
+        state = random.randint(0, states - 1)
+        parent.gen[state] = state_ant
+
+    return parent
 
 
 class Point:
@@ -64,37 +77,49 @@ class Grid:
         self.ants = []
         self.apple = 0
 
-    def sort_ants(self):
+    def sort(self):
         d = {}
         for ant in self.ants:
             d[ant] = ant.survival
 
-        parents = sorted(d.items(), key=lambda x: x[1])
+        parents = sorted(d.items(), key=lambda x: x[1], reverse=True)
+        return parents
+
+    def sort_ants(self):
+        parents = self.sort()
         self.ants.clear()
-        for index in range(int(len(parents))):
-            self.ants.append(parents[index][0])
+        for parent in parents:
+            self.ants.append(parent[0])
+            if len(self.ants) > 10:
+                break
 
     def new_gen(self):
         new_ants = []
         for father in self.ants:
             for mother in self.ants:
                 if father != mother:
-                    separator = random.randint(1, 5)
+                    separator = random.randint(1, states - 2)
                     ant_boy = Ant()
                     ant_girl = Ant()
-                    for state in range(7):
-                        # mutation = random.randint(0, 10)
+                    for state in range(states):
+                        mutation = random.randint(0, 10)
+                        if mutation > 6:
+                            changed_parent = random.randint(0, 2)
+                            if changed_parent == 2 or changed_parent == 0:
+                                father = generete_mutation(father)
+                            if changed_parent == 2 or changed_parent == 1:
+                                father = generete_mutation(mother)
+
                         if state < separator:
-                            ant_boy = set_gen(ant_boy, father, state)
-                            ant_girl = set_gen(ant_girl, mother, state)
+                            ant_boy.set_gen(father, state)
+                            ant_girl.set_gen(mother, state)
                         else:
-                            ant_boy = set_gen(ant_boy, mother, state)
-                            ant_girl = set_gen(ant_girl, father, state)
+                            ant_boy.set_gen(mother, state)
+                            ant_girl.set_gen(father, state)
 
                     new_ants.append(ant_boy)
                     new_ants.append(ant_girl)
         self.ants = new_ants
-        print("new gen")
 
     def move(self):
         for ant in self.ants:
@@ -117,7 +142,6 @@ class Grid:
                 world_ant[cell.y][cell.x] = 0
                 if ant.apple >= self.apple:
                     break
-            print(ant.survival)
 
 
 class Ant:
@@ -132,14 +156,20 @@ class Ant:
         self.speed = Point(1, 0)
 
     def generate_gen(self):
-        self.first_state = random.randint(0, 6)
+        self.first_state = random.randint(0, states-1)
         self.current_state = self.first_state
-        for state in range(7):
-            true_state = random.randint(0, 6)
-            false_state = random.randint(0, 6)
+        for state in range(states):
+            true_state = random.randint(0, states-1)
+            false_state = random.randint(0, states-1)
             false_turn = random.randint(0, 1)
             state_ant = [(false_turn, false_state), (0, true_state)]
             self.gen.append(state_ant)
+
+    def set_gen(self, parent, state):
+        self.gen.append(parent.gen[state])
+        self.first_state = parent.first_state
+        self.current_state = self.first_state
+        return self
 
 
 def main():
@@ -155,8 +185,14 @@ def main():
                 grid.apple += 1
     for i in range(20):
         grid.move()
-        grid.sort_ants()
-        grid.new_gen()
+        if i != 19:
+            grid.sort_ants()
+            grid.new_gen()
+
+    ants = grid.sort()
+    print("Survival best ant: ", ants[1][1])
+    print("Apples in universe: ", grid.apple)
+
 
 if __name__ == '__main__':
     main()
